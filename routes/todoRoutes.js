@@ -1,4 +1,6 @@
 const Models = require('../models/index');
+const Joi = require('@hapi/joi');
+let statusCode = 200;
 const todoHandler = async (request, h) => {
     try{
         const todos = await Models.Todos.findAll({})
@@ -8,20 +10,27 @@ const todoHandler = async (request, h) => {
     }
 }
 
-
+ 
 const createTodoHandler = async (request, h) => {
-    try{
-        const {titleReq, descriptionReq, userIdReq, completedReq} = request.payload;
+    try{    
+        const {titleReq, descriptionReq, userIdReq, completedReq,dateReq,emailReq} = request.payload;
         console.log(request.payload);
+
+
         const todo = await Models.Todos.create({
             title: titleReq,
             description: descriptionReq,
             userId: userIdReq ,
-            completed:completedReq
+            dateActivity: dateReq,
+            completed: completedReq,
+            email: emailReq
         })
+
         return{
             data: todo,
-            message: 'New todo has been created'
+            message: 'New todo has been created',
+            statusCode: statusCode,
+            error: ''
         }
     }catch(error){
             return h.response({
@@ -33,11 +42,13 @@ const createTodoHandler = async (request, h) => {
 const updateTodoHandler = async (request, h) => {
     try {
         const todo_id = request.params.id;
-        const { titleReq, descriptionReq, completedReq} = request.payload;
+        const { titleReq, descriptionReq, completedReq,dateReq,emailReq} = request.payload;
         const todo = await Models.Todos.update({
             title: titleReq,
             description: descriptionReq,
-            completed: completedReq
+            dateActivity : dateReq,
+            completed: completedReq,
+            email:emailReq
         }, {
             where: {
                 id: todo_id
@@ -49,7 +60,9 @@ const updateTodoHandler = async (request, h) => {
         console.log(todo);
         return{
             data: dataRequest,
-            message: ' Todo has been updated'
+            message: ' Todo has been updated',
+            statusCode: statusCode,
+            error: ''
         }
 
     }catch(error){
@@ -67,7 +80,11 @@ const deleteTodoHandler = async (request, h) => {
                 id: todo_id
             }
         })
-        return{message: ' Todo has been deleted'}
+        return{
+            message: ' Todo has been deleted',
+            statusCode: statusCode,
+            error: ''
+        }
     }catch (error){
         return h.response({
             error: error.message
@@ -77,7 +94,35 @@ const deleteTodoHandler = async (request, h) => {
 
 module.exports = [
     {method: 'GET', path: '/todos', handler: todoHandler},
-    {method: 'POST', path: '/todo', handler: createTodoHandler},
-    {method: 'PUT', path: '/todo/{id}',handler: updateTodoHandler},
+    {method: 'POST', 
+    path: '/todo',
+    options: {
+            validate: {
+                payload: {
+                    titleReq: Joi.required(),
+                    descriptionReq: Joi.required(),
+                    userIdReq: Joi.required(),
+                    completedReq: Joi.number().min(0).max(1).required(),
+                    dateReq: Joi.date().required(),
+                    emailReq: Joi.string().email().required()       
+                }
+            }
+        },
+    
+    handler: createTodoHandler},
+    {method: 'PUT', 
+    path: '/todo/{id}',
+    options: {
+        validate: {
+            payload: {
+                titleReq: Joi.required(),
+                descriptionReq: Joi.required(),
+                completedReq: Joi.number().min(0).max(1).required(),
+                dateReq: Joi.date().required(),
+                emailReq: Joi.string().email().required()
+            }
+        }
+    },  
+    handler: updateTodoHandler},
     {method: 'DELETE', path: '/todo/{id}',handler: deleteTodoHandler}
 ];
